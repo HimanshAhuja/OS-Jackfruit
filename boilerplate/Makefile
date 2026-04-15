@@ -1,41 +1,51 @@
-obj-m += monitor.o
+# ─────────────────────────────────────────────────────────────────
+# Makefile — Multi-Container Runtime
+#
+# Targets:
+#   all          — build engine binary + kernel module + workloads
+#   engine       — user-space runtime only
+#   workloads    — all test workloads
+#   monitor.ko   — kernel module only
+#   ci           — CI-safe compile check (no sudo / headers needed)
+#   clean        — remove all build artefacts
+# ─────────────────────────────────────────────────────────────────
 
-KDIR := /lib/modules/$(shell uname -r)/build
-PWD := $(shell pwd)
-# If you want host-built workload binaries to run directly inside an Alpine
-# rootfs, you can override this with WORKLOAD_LDFLAGS=-static when your
-# toolchain supports it.
-WORKLOAD_LDFLAGS ?= -static
+CC      := gcc
+CFLAGS  := -Wall -Wextra -O2 -pthread
+KDIR    := /lib/modules/$(shell uname -r)/build
 
-USER_TARGETS := engine memory_hog cpu_hog io_pulse
+# Kernel module source
+obj-m   += monitor.o
 
-all: $(USER_TARGETS) module
+.PHONY: all engine workloads monitor.ko ci clean
 
-ci: WORKLOAD_LDFLAGS =
-ci: $(USER_TARGETS)
+all: engine workloads monitor.ko
 
-module: monitor.ko
-
+# ── User-space binary ────────────────────────────────────────────
 engine: engine.c monitor_ioctl.h
-	gcc -O2 -Wall -Wextra -o engine engine.c -lpthread
+	$(CC) $(CFLAGS) -o $@ $<
 
-memory_hog: memory_hog.c
-	gcc -O2 -Wall $(WORKLOAD_LDFLAGS) -o memory_hog memory_hog.c
+# ── Workloads ────────────────────────────────────────────────────
+workloads: cpu_workload io_workload mem_workload
 
-cpu_hog: cpu_hog.c
-	gcc -O2 -Wall $(WORKLOAD_LDFLAGS) -o cpu_hog cpu_hog.c
+cpu_workload: cpu_workload.c
+	$(CC) $(CFLAGS) -o $@ $<
 
-io_pulse: io_pulse.c
-	gcc -O2 -Wall $(WORKLOAD_LDFLAGS) -o io_pulse io_pulse.c
+io_workload: io_workload.c
+	$(CC) $(CFLAGS) -o $@ $<
 
+mem_workload: mem_workload.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+# ── Kernel module ────────────────────────────────────────────────
 monitor.ko: monitor.c monitor_ioctl.h
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
 
-clean:
-	if [ -d "$(KDIR)" ]; then $(MAKE) -C $(KDIR) M=$(PWD) clean; fi
-	rm -f $(USER_TARGETS) *.o *.mod *.mod.c *.symvers *.order
-	rm -f *.log
-	rm -rf logs
-	rm -f /tmp/mini_runtime.sock
+# ── CI target (GitHub Actions — no sudo, no kernel headers) ──────
+ci: engine workloads
+	@echo "CI build OK: engine + workloads compiled successfully"
 
-.PHONY: all ci module clean
+# ── Clean ────────────────────────────────────────────────────────
+clean:
+	$(MAKE) -C $(KDIR) M=$(PWD) clean 2>/dev/null || true
+	rm -f engine cpu_workload io_workload mem_workload
