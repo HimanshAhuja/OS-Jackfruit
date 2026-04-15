@@ -139,11 +139,11 @@ sudo dmesg | tail -5
 
 ---
 
-## 3. Demo Screenshots
+## 3. Demo screenshots
 
 ### Screenshot 1 — Kernel module loaded
 
-![Kernel Module Loaded](Screenshots/SS1-Kernel-Module.png)
+![Kernel Module Loaded](screenshots/SS1-Kernel-Module.png)
 
 *`/dev/container_monitor` device appears after `sudo insmod monitor.ko`. `dmesg` confirms `container_monitor: loaded (major=240)`. This verifies the LKM loaded successfully and the character device is available for ioctl communication.*
 
@@ -151,7 +151,7 @@ sudo dmesg | tail -5
 
 ### Screenshot 2 — Multi-container supervision and metadata tracking
 
-![Metadata Tracking](Screenshots/SS2-Metadata-Tracking.png)
+![Metadata Tracking](screenshots/SS2-Metadata-Tracking.png)
 
 *Output of `sudo ./engine ps` showing containers alpha and beta with their host PIDs, states, soft/hard memory limits, start times, nice values, and stop reasons. Both containers were started with different configurations and tracked concurrently under one supervisor process (pid=8069).*
 
@@ -159,7 +159,7 @@ sudo dmesg | tail -5
 
 ### Screenshot 3 — Bounded-buffer logging
 
-![Bounded Buffer Logging](Screenshots/SS3-Bounded-Buffer-Logging.png)
+![Bounded Buffer Logging](screenshots/SS3-Bounded-Buffer-Logging.png)
 
 *Contents of the container log captured through the producer-consumer logging pipeline. `sudo ./engine logs alpha3` and `cat /tmp/engine_logs/alpha3.log` both show `[cpu_workload] pid=1 found 41538 primes in 0.108 seconds`. The container stdout was captured via pipe → producer thread → bounded buffer → consumer thread → log file.*
 
@@ -167,7 +167,7 @@ sudo dmesg | tail -5
 
 ### Screenshot 4 — CLI and IPC
 
-![CLI and IPC](Screenshots/SS4-CLI-and-IPC.png)
+![CLI and IPC](screenshots/SS4-CLI-and-IPC.png)
 
 *`sudo ./engine stop alpha4` issued from the CLI client travels over the UNIX domain socket (`/tmp/engine.sock`) to the supervisor. `engine ps` confirms alpha4 state is `killed` with reason `stopped`, showing the supervisor correctly received and acted on the stop command.*
 
@@ -175,7 +175,7 @@ sudo dmesg | tail -5
 
 ### Screenshot 5 — Soft-limit warning
 
-![Soft Limit](Screenshots/SS5-Soft-Limit.png)
+![Soft Limit](screenshots/SS5-Soft-Limit.png)
 
 *`dmesg` showing `container_monitor: registered pid=9643 soft=20 hard=40` followed by `[SOFT LIMIT] pid=9643 rss=20MiB >= soft=20MiB`. The kernel module fired the warning the first time the container's RSS reached the soft threshold.*
 
@@ -183,7 +183,7 @@ sudo dmesg | tail -5
 
 ### Screenshot 6 — Hard-limit enforcement
 
-![Hard Limit](Screenshots/SS5-SS6-Limits.png)
+![Hard Limit](screenshots/SS5-SS6-Limits.png)
 
 *`dmesg` showing `[HARD LIMIT] pid=9643 rss=40MiB >= hard=40MiB — SIGKILL`. The kernel module sent SIGKILL when RSS reached the hard limit. `engine ps` subsequently shows the container with reason `hard_limit_killed`, correctly distinguishing it from a manual stop.*
 
@@ -191,7 +191,7 @@ sudo dmesg | tail -5
 
 ### Screenshot 7 — Scheduling experiment
 
-![Scheduling Experiment](Screenshots/SS7-Scheduling.png)
+![Scheduling Experiment](screenshots/SS7-Scheduling.png)
 
 *Two containers ran identical `cpu_workload 500000` (primes to 500,000). Container `hi` (nice=0) completed in **0.108 seconds**. Container `lo` (nice=10) completed in **0.127 seconds**. The lower-priority container took ~18% longer, consistent with CFS proportional scheduling.*
 
@@ -199,7 +199,7 @@ sudo dmesg | tail -5
 
 ### Screenshot 8 — Clean teardown
 
-![Clean Teardown](Screenshots/SS8-Clean-Teardown.png)
+![Clean Teardown](screenshots/SS8-Clean-Teardown.png)
 
 *`engine ps` shows all containers in terminal states (exited/killed/stopped). `ps aux` shows no defunct/zombie processes. `dmesg` confirms `container_monitor: unregistered` for all PIDs and `container_monitor: unloaded` after `sudo rmmod monitor`. No resource leaks.*
 
